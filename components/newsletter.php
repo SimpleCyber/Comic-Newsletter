@@ -1,4 +1,10 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+
 require_once 'config.php';
 require 'vendor/autoload.php'; // PHPMailer autoload
 
@@ -32,11 +38,12 @@ function sendOTP($email, $otp) {
 }
 
 $msg = '';
+$email = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
-    $otp_input = $_POST['otp'] ?? '';
     $action = $_POST['action'] ?? '';
+    $email = $_POST['email'] ?? $_SESSION['otp_email'] ?? '';
+    $otp_input = $_POST['otp'] ?? '';
 
     if ($action === 'send_otp' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $otp = rand(100000, 999999);
@@ -46,8 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE otp = VALUES(otp), otp_expiry = VALUES(otp_expiry)");
         $stmt->execute([$email, $otp, $expiry]);
 
-        sendOTP($email, $otp);
-        $msg = 'OTP sent to your email.';
+        if (sendOTP($email, $otp)) {
+            $_SESSION['otp_email'] = $email; // Store email in session
+            $msg = 'OTP sent to your email.';
+        } else {
+            $msg = 'Failed to send OTP. Please try again.';
+        }
     }
 
     if ($action === 'verify_otp') {
@@ -57,33 +68,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($user && $user['otp'] === $otp_input && strtotime($user['otp_expiry']) > time()) {
             $pdo->prepare("UPDATE comic_subscribers SET is_verified = 1 WHERE email = ?")->execute([$email]);
-            $_SESSION['email'] = $email;
+            $_SESSION['verified_email'] = $email;
+            unset($_SESSION['otp_email']); // Remove temporary session
             $msg = 'Email verified successfully.';
         } else {
             $msg = 'Invalid or expired OTP.';
         }
     }
 
-    if ($action === 'subscribe' && isset($_SESSION['email'])) {
+    if ($action === 'subscribe' && isset($_SESSION['verified_email'])) {
         $time = $_POST['preferred_time'] ?? '08:00:00';
         $pdo->prepare("UPDATE comic_subscribers SET is_subscribed = 1, preferred_time = ? WHERE email = ?")
-            ->execute([$time, $_SESSION['email']]);
+            ->execute([$time, $_SESSION['verified_email']]);
         $msg = 'Subscribed successfully.';
     }
 
-    if ($action === 'unsubscribe' && isset($_SESSION['email'])) {
+    if ($action === 'unsubscribe' && isset($_SESSION['verified_email'])) {
         $pdo->prepare("UPDATE comic_subscribers SET is_subscribed = 0 WHERE email = ?")
-            ->execute([$_SESSION['email']]);
+            ->execute([$_SESSION['verified_email']]);
         $msg = 'Unsubscribed.';
+    }
+
+    if ($action === 'logout') {
+        session_unset();
+        session_destroy();
+        $msg = 'You have been logged out. To access again, please verify with OTP.';
     }
 }
 
-// Fetch current user if session exists
+// Fetch current user if verified session exists
 $current = null;
-if (isset($_SESSION['email'])) {
+if (isset($_SESSION['verified_email'])) {
     $stmt = $pdo->prepare("SELECT * FROM comic_subscribers WHERE email = ?");
-    $stmt->execute([$_SESSION['email']]);
+    $stmt->execute([$_SESSION['verified_email']]);
     $current = $stmt->fetch();
+    $email = $_SESSION['verified_email'];
 }
 ?>
 
@@ -91,36 +110,61 @@ if (isset($_SESSION['email'])) {
 <html>
 <head>
     <title>Comic Newsletter</title>
+    <style>
+        .form-group { margin-bottom: 15px; }
+        label { display: inline-block; width: 150px; }
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
     <h2>Comic Letter Subscription</h2>
-    <p style="color: green;"><?= $msg ?></p>
+    <?php if ($msg): ?>
+        <p style="color: <?= strpos($msg, 'success') !== false ? 'green' : 'red' ?>;"><?= $msg ?></p>
+    <?php endif; ?>
 
-    <?php if (!$current): ?>
-        <form method="POST">
-            <input type="email" name="email" placeholder="Enter your email" required>
-            <button name="action" value="send_otp">Send OTP</button>
-        </form>
-        <form method="POST">
-            <input type="email" name="email" placeholder="Enter your email again" required>
-            <input type="text" name="otp" placeholder="Enter OTP" required>
-            <button name="action" value="verify_otp">Verify OTP</button>
-        </form>
-    <?php elseif ($current['is_verified']): ?>
-        <p><b>Email:</b> <?= $current['email'] ?></p>
+    <?php if (!isset($_SESSION['verified_email'])): ?>
+        <div id="otp-section">
+            <div class="form-group" id="send-otp-section">
+                <h3> Send OTP</h3>
+                <form method="POST">
+                    <label>Email:</label>
+                    <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" placeholder="Enter your email" required>
+                    <button type="submit" name="action" value="send_otp">Send OTP</button>
+                </form>
+            </div>
+
+            <?php if (isset($_SESSION['otp_email'])): ?>
+                <div class="form-group" id="verify-otp-section">
+                    <h3> Verify OTP</h3>
+                    <form method="POST">
+                        <input type="hidden" name="email" value="<?= htmlspecialchars($_SESSION['otp_email']) ?>">
+                        <label>OTP:</label>
+                        <input type="text" name="otp" placeholder="Enter OTP" required>
+                        <button type="submit" name="action" value="verify_otp">Verify OTP</button>
+                    </form>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php else: ?>
+        <h3>Account Information</h3>
+        <p><b>Email:</b> <?= htmlspecialchars($current['email']) ?></p>
         <p><b>Status:</b> <?= $current['is_subscribed'] ? 'Subscribed' : 'Not Subscribed' ?></p>
 
         <?php if ($current['is_subscribed']): ?>
             <form method="POST">
-                <button name="action" value="unsubscribe">Unsubscribe</button>
+                <button type="submit" name="action" value="unsubscribe">Unsubscribe</button>
             </form>
         <?php else: ?>
             <form method="POST">
                 <label>Preferred Time: </label>
-                <input type="time" name="preferred_time" value="<?= $current['preferred_time'] ?>">
-                <button name="action" value="subscribe">Subscribe</button>
+                <input type="time" name="preferred_time" value="<?= htmlspecialchars($current['preferred_time']) ?>">
+                <button type="submit" name="action" value="subscribe">Subscribe</button>
             </form>
         <?php endif; ?>
+
+        <form method="POST" style="margin-top: 20px;">
+            <button type="submit" name="action" value="logout">Exit</button>
+        </form>
     <?php endif; ?>
 </body>
 </html>
