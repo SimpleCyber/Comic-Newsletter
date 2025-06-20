@@ -9,7 +9,7 @@ $comics = fetchMultipleXkcdComics($startId, 10);
         <!-- Not Logged In Content -->
         <div class="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white mb-8 shadow-lg text-center">
             <div class="max-w-2xl mx-auto">
-                <h1 class="text-4xl font-bold mb-4">Welcome to COMIC BYTE Short Comics</h1>
+                <h1 class="text-4xl font-bold mb-4">Welcome to COMIC BYTE  <br /> <span class="text-[1.5rem]">Short Comics </span></h1>
                 <p class="text-blue-100 text-lg mb-6">Join thousands of users getting the best comics here</p>
 
                  <a href="/index.php?page=random-comic" class="inline-flex items-center space-x-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors">
