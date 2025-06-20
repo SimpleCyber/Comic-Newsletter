@@ -1,0 +1,25 @@
+ :root {
+            --sidebar-light: #1b2435;
+            --sidebar-dark: #1e2128;
+            --sidebar-hover: #ff2d36;
+            --back-light: #eff2f7;
+            --back-dark: #141519;
+            --card-light: #ffffff;
+            --card-dark: #1e2128;
+            --footer-light: #27364b;
+            --footer-dark: #1e2128;
+        }
+
+        .dark {
+            --sidebar-color: var(--sidebar-dark);
+            --back-color: var(--back-dark);
+            --card-color: var(--card-dark);
+            --footer-color: var(--footer-dark);
+        }
+
+        :not(.dark) {
+            --sidebar-color: var(--sidebar-light);
+            --back-color: var(--back-light);
+            --card-color: var(--card-light);
+            --footer-color: var(--footer-light);
+        }
