@@ -10,19 +10,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($login) || empty($password)) {
         $error = 'Please fill in all fields';
     } else {
-        // Check if login is email or username
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? OR username = ?");
-        $stmt->execute([$login, $login]);
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->execute([$login]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
             $_SESSION['full_name'] = $user['full_name'];
             header('Location: index.php');
             exit();
         } else {
-            $error = 'Invalid email/username or password';
+            $error = 'Invalid email or password';
         }
     }
 }
@@ -48,16 +46,7 @@ if (isLoggedIn()) {
         <div class="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
             <div class="w-full max-w-md">
                 <div class="bg-white rounded-2xl shadow-xl p-8">
-                    <!-- Logo -->
-                    <div class="text-center mb-8">
-                        <div class="inline-flex items-center space-x-2">
-                            <div class="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-pen-nib text-white text-sm"></i>
-                            </div>
-                            <span class="text-xl font-bold text-gray-900">COPYWRITING</span>
-                        </div>
-                        <p class="text-sm text-gray-600 mt-2">COURSE</p>
-                    </div>
+                   
 
                     <!-- Title -->
                     <div class="text-center mb-6">
@@ -76,7 +65,7 @@ if (isLoggedIn()) {
                     <form method="POST" class="space-y-4">
                         <div>
                             <label for="login" class="block text-sm font-medium text-gray-700 mb-1">
-                                Email or Username
+                                Email
                             </label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -84,7 +73,7 @@ if (isLoggedIn()) {
                                 </div>
                                 <input type="text" id="login" name="login" required
                                     class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                    placeholder="Enter your email or username"
+                                    placeholder="Enter your email"
                                     value="<?php echo isset($_POST['login']) ? htmlspecialchars($_POST['login']) : ''; ?>">
                             </div>
                         </div>
@@ -117,29 +106,9 @@ if (isLoggedIn()) {
                         </button>
                     </form>
 
-                    <!-- Divider -->
-                    <div class="my-6">
-                        <div class="relative">
-                            <div class="absolute inset-0 flex items-center">
-                                <div class="w-full border-t border-gray-300"></div>
-                            </div>
-                            <div class="relative flex justify-center text-sm">
-                                <span class="px-2 bg-white text-gray-500">Or continue with</span>
-                            </div>
-                        </div>
-                    </div>
+                   
 
-                    <!-- Social Login -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <button class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                            <i class="fab fa-google text-red-500 mr-2"></i>
-                            <span class="text-sm text-gray-700">Google</span>
-                        </button>
-                        <button class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                            <i class="fab fa-facebook text-blue-600 mr-2"></i>
-                            <span class="text-sm text-gray-700">Facebook</span>
-                        </button>
-                    </div>
+                    
 
                     <!-- Sign up link -->
                     <p class="text-center text-sm text-gray-600 mt-6">

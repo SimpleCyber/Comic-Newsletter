@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once 'functions.php';
 
 // Check if user is logged in
 $user = null;
@@ -54,7 +55,7 @@ if (!in_array($page, $validPages)) {
         <?php include 'components/sidebar.php'; ?>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-h-screen">
+        <div class="flex-1 flex flex-col min-h-screen lg:ml-[250px]">
             <?php include 'components/header.php'; ?>
             
             <!-- Dynamic Content Area -->

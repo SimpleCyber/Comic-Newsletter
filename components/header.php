@@ -57,12 +57,6 @@
                                 <p class="text-sm font-medium text-gray-900 dark:text-gray-100"><?php echo htmlspecialchars($user['full_name']); ?></p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400"><?php echo htmlspecialchars($user['email']); ?></p>
                             </div>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="fas fa-user mr-2"></i>Profile
-                            </a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="fas fa-cog mr-2"></i>Settings
-                            </a>
                             <a href="logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
                                 <i class="fas fa-sign-out-alt mr-2"></i>Logout
                             </a>

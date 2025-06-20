@@ -23,3 +23,8 @@
             --card-color: var(--card-light);
             --footer-color: var(--footer-light);
         }
+
+
+    #sidebar {
+        position: fixed;
+    }
