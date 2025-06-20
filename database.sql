@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 
 
-CREATE TABLE comic_letter (
+CREATE TABLE IF NOT EXISTS comic_letter (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     is_verified BOOLEAN DEFAULT FALSE,
@@ -30,4 +30,17 @@ CREATE TABLE comic_letter (
     source VARCHAR(50) DEFAULT 'website',
     user_agent TEXT,
     ip_address VARCHAR(45)
+);
+
+
+CREATE TABLE IF NOT EXISTS comic_subscribers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    is_verified BOOLEAN DEFAULT FALSE,
+    is_subscribed BOOLEAN DEFAULT FALSE,
+    otp VARCHAR(10),
+    otp_expiry DATETIME,
+    preferred_time TIME DEFAULT '08:00:00',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
