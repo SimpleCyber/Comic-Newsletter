@@ -105,66 +105,109 @@ if (isset($_SESSION['verified_email'])) {
     $email = $_SESSION['verified_email'];
 }
 ?>
-
 <!DOCTYPE html>
-<html>
 <head>
     <title>Comic Newsletter</title>
-    <style>
-        .form-group { margin-bottom: 15px; }
-        label { display: inline-block; width: 150px; }
-        .hidden { display: none; }
-    </style>
+
 </head>
-<body>
-    <h2>Comic Letter Subscription</h2>
-    <?php if ($msg): ?>
-        <p style="color: <?= strpos($msg, 'success') !== false ? 'green' : 'red' ?>;"><?= $msg ?></p>
-    <?php endif; ?>
-
-    <?php if (!isset($_SESSION['verified_email'])): ?>
-        <div id="otp-section">
-            <div class="form-group" id="send-otp-section">
-                <h3> Send OTP</h3>
-                <form method="POST">
-                    <label>Email:</label>
-                    <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" placeholder="Enter your email" required>
-                    <button type="submit" name="action" value="send_otp">Send OTP</button>
-                </form>
+<body class="bg-card-color dark:bg-gray-800 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class=" p-4 ml-2 flex items-center">
+                <i class="fas fa-book-open text-red-500 mr-2"></i>
+                <h2 class="text-red-500 font-bold">Comic Newsletter</h2>
             </div>
+            
+            <!-- Card Body -->
+            <div class="p-6 -mt-5">
+                <?php if ($msg): ?>
+                    <div class="mb-4 p-3 rounded <?= strpos($msg, 'success') !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' ?>">
+                        <i class="fas <?= strpos($msg, 'success') !== false ? 'fa-check-circle' : 'fa-exclamation-circle' ?> mr-1"></i>
+                        <?= $msg ?>
+                    </div>
+                <?php endif; ?>
 
-            <?php if (isset($_SESSION['otp_email'])): ?>
-                <div class="form-group" id="verify-otp-section">
-                    <h3> Verify OTP</h3>
-                    <form method="POST">
-                        <input type="hidden" name="email" value="<?= htmlspecialchars($_SESSION['otp_email']) ?>">
-                        <label>OTP:</label>
-                        <input type="text" name="otp" placeholder="Enter OTP" required>
-                        <button type="submit" name="action" value="verify_otp">Verify OTP</button>
-                    </form>
-                </div>
-            <?php endif; ?>
+                <?php if (!isset($_SESSION['verified_email'])): ?>
+                    <!-- OTP Section -->
+                    <div>
+                        <form method="POST" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-envelope mr-1 text-red-500"></i> Subscribe to get daily comics on mail !
+                                </label>
+                                <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" 
+                                       class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-red-300" 
+                                       placeholder="your@email.com" required>
+                            </div>
+                            
+                            <?php if (isset($_SESSION['otp_email'])): ?>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        <i class="fas fa-lock mr-1 text-red-500"></i> OTP Code
+                                    </label>
+                                    <input type="text" name="otp" 
+                                           class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-red-300" 
+                                           placeholder="Enter 6-digit OTP" required>
+                                </div>
+                                <button type="submit" name="action" value="verify_otp" 
+                                        class="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">
+                                    <i class="fas fa-check-circle mr-1"></i> Verify OTP
+                                </button>
+                            <?php else: ?>
+                                <button type="submit" name="action" value="send_otp" 
+                                        class="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">
+                                    <i class="fas fa-paper-plane mr-1"></i> Send OTP
+                                </button>
+                            <?php endif; ?>
+                        </form>
+                    </div>
+                <?php else: ?>
+                    <!-- Account Section -->
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-user-circle text-2xl text-red-500 mr-2"></i>
+                            <div>
+                                <p class="font-medium"><?= htmlspecialchars($current['email']) ?></p>
+                                <p class="text-sm <?= $current['is_subscribed'] ? 'text-green-600' : 'text-gray-600' ?>">
+                                    <i class="fas <?= $current['is_subscribed'] ? 'fa-bell' : 'fa-bell-slash' ?> mr-1"></i>
+                                    <?= $current['is_subscribed'] ? 'Subscribed' : 'Not Subscribed' ?>
+                                </p>
+                            </div>
+                        </div>
+
+                        <?php if ($current['is_subscribed']): ?>
+                            <form method="POST">
+                                <button type="submit" name="action" value="unsubscribe" 
+                                        class="w-full py-2 bg-gray-200 text-red-500 rounded hover:bg-gray-300 transition">
+                                    <i class="fas fa-times-circle mr-1"></i> Unsubscribe
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <form method="POST" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        <i class="fas fa-clock mr-1 text-red-500"></i> Preferred Time
+                                    </label>
+                                    <input type="time" name="preferred_time" value="<?= htmlspecialchars($current['preferred_time']) ?>" 
+                                           class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-red-300">
+                                </div>
+                                <button type="submit" name="action" value="subscribe" 
+                                        class="w-full py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">
+                                    <i class="fas fa-check-circle mr-1"></i> Subscribe
+                                </button>
+                            </form>
+                        <?php endif; ?>
+
+                        <form method="POST" class="pt-4 border-t">
+                            <button type="submit" name="action" value="logout" 
+                                    class="w-full py-2 text-gray-600 hover:text-gray-800 transition">
+                                <i class="fas fa-sign-out-alt mr-1"></i> Exit
+                            </button>
+                        </form>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
-    <?php else: ?>
-        <h3>Account Information</h3>
-        <p><b>Email:</b> <?= htmlspecialchars($current['email']) ?></p>
-        <p><b>Status:</b> <?= $current['is_subscribed'] ? 'Subscribed' : 'Not Subscribed' ?></p>
-
-        <?php if ($current['is_subscribed']): ?>
-            <form method="POST">
-                <button type="submit" name="action" value="unsubscribe">Unsubscribe</button>
-            </form>
-        <?php else: ?>
-            <form method="POST">
-                <label>Preferred Time: </label>
-                <input type="time" name="preferred_time" value="<?= htmlspecialchars($current['preferred_time']) ?>">
-                <button type="submit" name="action" value="subscribe">Subscribe</button>
-            </form>
-        <?php endif; ?>
-
-        <form method="POST" style="margin-top: 20px;">
-            <button type="submit" name="action" value="logout">Exit</button>
-        </form>
-    <?php endif; ?>
+    </div>
 </body>
 </html>
