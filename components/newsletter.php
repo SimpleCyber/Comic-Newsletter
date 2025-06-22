@@ -198,14 +198,15 @@ if (isset($_SESSION['verified_email'])) {
                             </form>
                         <?php endif; ?>
 
-                        <form method="POST" class="pt-4 border-t">
-                            <button type="submit" name="action" value="logout" 
-                                    class="w-full py-2 text-gray-600 hover:text-gray-800 transition">
-                                <i class="fas fa-sign-out-alt mr-1"></i> Exit
-                            </button>
-                        </form>
+                        
                     </div>
                 <?php endif; ?>
+                <form method="POST" class="pt-4 border-t">
+                            <button type="submit" name="action" value="logout" 
+                                    class="w-full py-2 text-gray-600 hover:text-gray-800 transition">
+                                <i class="fas fa-sign-out-alt mr-1"></i> Reset
+                            </button>
+                </form>
             </div>
         </div>
     </div>
