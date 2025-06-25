@@ -10,6 +10,24 @@ if (!in_array($filter, $allowed_status)) $filter = 'latest';
 
 $section = in_array($section, ['postmails', 'users', 'loggedin']) ? $section : 'postmails';
 
+
+if (isset($_POST['logout'])) {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        // Unset all session variables
+        $_SESSION = array();
+        
+        // Destroy the session
+        session_destroy();
+        
+        // Redirect to login page
+        header("Location: /admin.php");
+        exit();
+    }
+
 // Retry / Pause / Delete / Execute / Resume
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['retry'])) {
@@ -97,6 +115,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fas fa-user-check mr-3"></i>
                         <span>Logged In Users</span>
                     </a>
+
+
+                    <!-- Self-contained Logout Button Component -->
+                        <div class="fixed bottom-0 left-2 p-4">
+                            <form method="post" class="w-48">
+                            <button
+                                type="submit"
+                                name="logout"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-3 text-gray-200 hover:text-white bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors duration-200"
+                                onclick="return confirm('Are you sure you want to logout?')"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                <span>Logout</span>
+                            </button>
+                        </form>
+                    </div>
+
                 </nav>
             </div>
         </aside>

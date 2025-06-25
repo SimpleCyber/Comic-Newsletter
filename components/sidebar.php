@@ -39,11 +39,12 @@
             <i class="fas fa-newspaper mr-3 text-base"></i>
             Daily Newsletter
         </a>
-        <a href="<?php echo $isLoggedIn ? '?page=bookmarked-comics' : 'login.php'; ?>" 
+
+        <a href="<?php echo $isLoggedIn ? '/bulldashboard/bull-dashboard.php' : 'admin.php'; ?>" 
             data-page="bookmarked-comics" 
             class="nav-link group flex items-center px-4 py-3 text-sm font-medium rounded-lg <?php echo $page === 'bookmarked-comics' ? 'bg-sidebar-hover text-white' : 'text-gray-300 hover:bg-sidebar-hover hover:text-white' ?> transition-colors">
                 <i class="fas fa-trophy mr-3 text-base"></i>
-                Bookmarked Comics
+               Admin Dashboard
         </a>
     </div>
 </nav>
