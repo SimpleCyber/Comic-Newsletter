@@ -59,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_otp'])) {
     } else {
         echo "Failed to send OTP.";
     }
-    header('Location: admin.php');
+    echo "<script>window.location.href = '/admin.php';</script>";
+
     exit();
 }
 
@@ -78,18 +79,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_otp'])) {
         $_SESSION['admin_authenticated'] = true;
         unset($_SESSION['admin_otp']);
         unset($_SESSION['admin_otp_expiry']);
-        header('Location: /bulldashboard/bull-dashboard.php');
+        echo "<script>window.location.href = '/bulldashboard/bull-dashboard.php';</script>";
+
         exit();
     } else {
         $_SESSION['error'] = 'Invalid OTP. Please try again.';
     }
-    header('Location: admin.php');
+    echo "<script>window.location.href = '/admin.php';</script>";
+
     exit();
 }
 
 // Check if already authenticated
 if (isset($_SESSION['admin_authenticated']) && $_SESSION['admin_authenticated'] === true) {
-    header('Location: /bulldashboard/bull-dashboard.php');
+    echo "<script>window.location.href = '/bulldashboard/bull-dashboard.php';</script>";
+
     exit();
 }
 ?>

@@ -1,6 +1,6 @@
 <?php
 require_once '../config.php';
-require_once 'send_email_task.php'; // defined below
+require_once './send-mail-manually.php'; 
 
 date_default_timezone_set('Asia/Kolkata');
 

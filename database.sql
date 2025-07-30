@@ -44,22 +44,6 @@ CREATE TABLE IF NOT EXISTS email_queue (
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 CREATE TABLE IF NOT EXISTS queue_stats (
     id INT AUTO_INCREMENT PRIMARY KEY,
     queue_name VARCHAR(50) NOT NULL,
