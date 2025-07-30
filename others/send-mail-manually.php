@@ -1,9 +1,5 @@
 <?php
 require_once '../config.php';
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-require '../vendor/autoload.php';
-
 date_default_timezone_set('UTC');
 
 // Step 1: Get all verified + subscribed users
@@ -16,6 +12,51 @@ if (!$subscribers) {
     exit;
 }
 
+// ✅ Function moved outside loop
+function sendComicEmail($email, $comic) {
+    $url = 'https://python-mailsend.onrender.com/send-email';
+
+    $subject = "📰 Your XKCD Comic of the Day: {$comic['safe_title']}";
+    $comicHTML = "
+    <div style='font-family: sans-serif; padding: 10px;'>
+        <h2>XKCD Comic #{$comic['num']} – {$comic['safe_title']}</h2>
+        <p><strong>Alt text:</strong> {$comic['alt']}</p>
+        <img src='{$comic['img']}' alt='{$comic['safe_title']}' style='max-width:100%; height:auto;' />
+        <p style='font-size: 12px; margin-top: 10px;'>Read more: <a href='https://xkcd.com/{$comic['num']}' target='_blank'>https://xkcd.com/{$comic['num']}</a></p>
+        <hr>
+        <p style='font-size: 11px;'>To unsubscribe, reply with 'UNSUBSCRIBE'.</p>
+    </div>
+    ";
+
+    $data = [
+        'to' => $email,
+        'subject' => $subject,
+        'body' => $comicHTML
+    ];
+
+    $headers = [
+        'Content-Type: application/json'
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_POST, true);
+
+    $response = curl_exec($ch);
+    $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_status === 200) {
+        echo "✅ Sent to: $email (Comic #{$comic['num']})\n";
+    } else {
+        error_log("❌ Failed to send to $email. Response: $response");
+        echo "❌ Failed to $email\n";
+    }
+}
+
+// ✅ Loop through subscribers and send
 foreach ($subscribers as $subscriber) {
     $email = $subscriber['email'];
 
@@ -24,7 +65,6 @@ foreach ($subscribers as $subscriber) {
     $comicURL = "https://xkcd.com/$comicNum/info.0.json";
     $json = @file_get_contents($comicURL);
 
-    // Retry if broken
     if (!$json) {
         echo "❌ Failed to fetch comic $comicNum for $email\n";
         continue;
@@ -37,40 +77,6 @@ foreach ($subscribers as $subscriber) {
         continue;
     }
 
-    $comicHTML = "
-    <div style='font-family: sans-serif; padding: 10px;'>
-        <h2>XKCD Comic #{$comic['num']} – {$comic['safe_title']}</h2>
-        <p><strong>Alt text:</strong> {$comic['alt']}</p>
-        <img src='{$comic['img']}' alt='{$comic['safe_title']}' style='max-width:100%; height:auto;' />
-        <p style='font-size: 12px; margin-top: 10px;'>Read more: <a href='https://xkcd.com/{$comic['num']}' target='_blank'>https://xkcd.com/{$comic['num']}</a></p>
-        <hr>
-        <p style='font-size: 11px;'>To unsubscribe, reply with 'UNSUBSCRIBE'.</p>
-    </div>
-    ";
-
-    // Step 3: Send email
-    $mail = new PHPMailer(true);
-    try {
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = EMAIL_HOST_USER;
-        $mail->Password   = EMAIL_KEY;
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
-
-        $mail->setFrom(EMAIL_HOST_USER, 'Comic Letter');
-        $mail->addAddress($email);
-
-        $mail->isHTML(true);
-        $mail->Subject = "📰 Your XKCD Comic of the Day: {$comic['safe_title']}";
-        $mail->Body    = $comicHTML;
-        $mail->AltBody = "{$comic['safe_title']} - {$comic['alt']} - https://xkcd.com/{$comic['num']}";
-
-        $mail->send();
-        echo "✅ Sent to: $email (Comic #{$comic['num']})\n";
-    } catch (Exception $e) {
-        error_log("❌ Failed to send to $email: " . $mail->ErrorInfo);
-        echo "❌ Failed to $email\n";
-    }
+    // Step 3: Send email via Flask API
+    sendComicEmail($email, $comic);
 }

@@ -2,61 +2,62 @@
 
 
 require_once 'config.php';
-require 'vendor/autoload.php'; // PHPMailer autoload
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
 // Function to generate a 6-digit OTP
-function generateOTP() {
+function generateOTP()
+{
     return strval(rand(100000, 999999));
 }
 
 // Function to send OTP
-function sendOTP($email, $otp) {
-    $mail = new PHPMailer(true);
-    try {
-        // Server settings
-        $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
-        $mail->Username = EMAIL_HOST_USER;
-        $mail->Password = EMAIL_KEY; // Make sure this is defined in config.php
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = 587;
+function sendOTP($email, $otp)
+{
+    $url = 'https://python-mailsend.onrender.com/send-email';
 
-        // Recipients
-        $mail->setFrom(EMAIL_HOST_USER, 'Your App Name');
-        $mail->addAddress($email);
+    $data = [
+        'to' => $email,
+        'subject' => 'Your OTP for Admin Login',
+        'body' => "Your OTP is: <b>$otp</b><br>This OTP is valid for 10 minutes."
+    ];
 
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = 'Your OTP for Admin Login';
-        $mail->Body = "Your OTP is: <b>$otp</b><br>This OTP is valid for 10 minutes.";
-        $mail->AltBody = "Your OTP is: $otp\nThis OTP is valid for 10 minutes.";
+    $headers = [
+        'Content-Type: application/json'
+    ];
 
-        $mail->send();
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_POST, true);
+
+    $response = curl_exec($ch);
+    $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_status === 200) {
         return true;
-    } catch (Exception $e) {
-        error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
+    } else {
+        error_log("Failed to send OTP via API. Response: $response");
         return false;
     }
 }
+
 
 // Handle OTP request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_otp'])) {
     $email = 'satyamyadav9uv@gmail.com';
     $otp = generateOTP();
-    
+
     // Store OTP in session with expiration time (10 minutes)
     $_SESSION['admin_otp'] = $otp;
     $_SESSION['admin_otp_expiry'] = time() + 600; // 10 minutes from now
-    
+
     if (sendOTP($email, $otp)) {
         $_SESSION['otp_sent'] = true;
-        $_SESSION['message'] = 'OTP has been sent to your email.';
+        echo "OTP sent!";
     } else {
-        $_SESSION['error'] = 'Failed to send OTP. Please try again.';
+        echo "Failed to send OTP.";
     }
     header('Location: admin.php');
     exit();
@@ -65,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_otp'])) {
 // Handle OTP verification
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['verify_otp'])) {
     $user_otp = $_POST['otp'] ?? '';
-    
+
     if (empty($user_otp)) {
         $_SESSION['error'] = 'Please enter the OTP.';
     } elseif (!isset($_SESSION['admin_otp']) || !isset($_SESSION['admin_otp_expiry'])) {
@@ -95,6 +96,7 @@ if (isset($_SESSION['admin_authenticated']) && $_SESSION['admin_authenticated'] 
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -110,6 +112,7 @@ if (isset($_SESSION['admin_authenticated']) && $_SESSION['admin_authenticated'] 
             height: 100vh;
             margin: 0;
         }
+
         .login-container {
             background-color: white;
             border-radius: 10px;
@@ -118,16 +121,19 @@ if (isset($_SESSION['admin_authenticated']) && $_SESSION['admin_authenticated'] 
             width: 350px;
             text-align: center;
         }
+
         .login-container h2 {
             margin-bottom: 1.5rem;
             color: #1f2937;
         }
+
         .otp-input {
             display: flex;
             justify-content: center;
             gap: 10px;
             margin-bottom: 1.5rem;
         }
+
         .otp-input input {
             width: 40px;
             height: 40px;
@@ -136,6 +142,7 @@ if (isset($_SESSION['admin_authenticated']) && $_SESSION['admin_authenticated'] 
             border: 1px solid #d1d5db;
             border-radius: 5px;
         }
+
         .btn {
             background-color: #3b82f6;
             color: white;
@@ -146,48 +153,58 @@ if (isset($_SESSION['admin_authenticated']) && $_SESSION['admin_authenticated'] 
             font-weight: 500;
             transition: background-color 0.2s;
         }
+
         .btn:hover {
             background-color: #2563eb;
         }
+
         .btn:disabled {
             background-color: #9ca3af;
             cursor: not-allowed;
         }
+
         .message {
             margin: 1rem 0;
             padding: 0.75rem;
             border-radius: 5px;
         }
+
         .success {
             background-color: #d1fae5;
             color: #065f46;
         }
+
         .error {
             background-color: #fee2e2;
             color: #b91c1c;
         }
+
         .resend {
             margin-top: 1rem;
             color: #6b7280;
         }
+
         .resend a {
             color: #3b82f6;
             text-decoration: none;
         }
     </style>
 </head>
+
 <body>
     <div class="login-container">
         <h2>Admin Login</h2>
-        
+
         <?php if (isset($_SESSION['message'])): ?>
-            <div class="message success"><?php echo $_SESSION['message']; unset($_SESSION['message']); ?></div>
+            <div class="message success"><?php echo $_SESSION['message'];
+                                            unset($_SESSION['message']); ?></div>
         <?php endif; ?>
-        
+
         <?php if (isset($_SESSION['error'])): ?>
-            <div class="message error"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div>
+            <div class="message error"><?php echo $_SESSION['error'];
+                                        unset($_SESSION['error']); ?></div>
         <?php endif; ?>
-        
+
         <?php if (!isset($_SESSION['otp_sent'])): ?>
             <form method="POST">
                 <p>Click the button below to receive an OTP on your admin email.</p>
@@ -207,4 +224,5 @@ if (isset($_SESSION['admin_authenticated']) && $_SESSION['admin_authenticated'] 
         <?php endif; ?>
     </div>
 </body>
+
 </html>

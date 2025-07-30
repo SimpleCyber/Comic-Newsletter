@@ -1,8 +1,48 @@
 <?php
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
-require_once '../vendor/autoload.php';
+function sendComicEmail($email, $comic) {
+    $url = 'https://python-mailsend.onrender.com/send-email';
+
+    $subject = "📰 Your XKCD Comic: {$comic['safe_title']}";
+    $body = "
+        <div style='font-family: sans-serif; padding: 10px;'>
+            <h2>XKCD Comic #{$comic['num']} – {$comic['safe_title']}</h2>
+            <img src='{$comic['img']}' alt='{$comic['safe_title']}' style='max-width:100%; height:auto;' />
+            <p><em>{$comic['alt']}</em></p>
+            <p><a href='https://xkcd.com/{$comic['num']}'>View Comic on XKCD</a></p>
+            <hr>
+            <p style='font-size: 11px;'>You're receiving this because you're subscribed to Comic Letter.</p>
+        </div>
+    ";
+
+    $data = [
+        'to' => $email,
+        'subject' => $subject,
+        'body' => $body
+    ];
+
+    $headers = [
+        'Content-Type: application/json'
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_POST, true);
+
+    $response = curl_exec($ch);
+    $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_status === 200) {
+        echo "✅ Sent to $email (Comic #{$comic['num']})\n";
+    } else {
+        error_log("❌ Failed to send to $email. Response: $response");
+        echo "❌ Failed to $email\n";
+    }
+}
+
 
 function sendMail($pdo, $job) {
     $startTime = microtime(true);
@@ -10,29 +50,8 @@ function sendMail($pdo, $job) {
     $email = $job['recipient_email'];
     $comic = json_decode($job['comic_data'], true);
 
-    $mail = new PHPMailer(true);
     try {
-        $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
-        $mail->Username = EMAIL_HOST_USER;
-        $mail->Password = EMAIL_KEY;
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = 587;
-
-        $mail->setFrom(EMAIL_HOST_USER, 'Comic Letter');
-        $mail->addAddress($email);
-
-        $mail->isHTML(true);
-        $mail->Subject = "📰 Your XKCD Comic: {$comic['safe_title']}";
-        $mail->Body = "
-            <h2>XKCD Comic #{$comic['num']} – {$comic['safe_title']}</h2>
-            <img src='{$comic['img']}' style='max-width:100%'>
-            <p>{$comic['alt']}</p>
-            <a href='https://xkcd.com/{$comic['num']}'>View Comic</a>
-        ";
-
-        $mail->send();
+        sendComicEmail($email, $comic);
 
         // Update job as completed
         $pdo->prepare("UPDATE email_queue SET 

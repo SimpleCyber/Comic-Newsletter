@@ -6,8 +6,8 @@ define('DB_HOST', 'localhost');
 define('DB_NAME', 'copywriting_course');
 define('DB_USER', 'root');
 define('DB_PASS', '');
-define('EMAIL_HOST_USER', 'yourdevhub@gmail.com');
-define('EMAIL_KEY', 'fikr gyoc kiwb wizm');
+
+
 
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);

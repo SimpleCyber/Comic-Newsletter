@@ -1,12 +1,6 @@
 <?php
 require_once 'config.php';
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-// Autoload PHPMailer
-require 'vendor/autoload.php';
-
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -17,36 +11,46 @@ $success = '';
 $email_verified = false;
 
 // Function to send OTP email using PHPMailer
-function sendOTP($email, $otp) {
-    $mail = new PHPMailer(true);
+function sendOTP($email, $otp)
+{
+    $url = 'https://python-mailsend.onrender.com/send-email';
 
-    try {
-        // SMTP server configuration
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = EMAIL_HOST_USER;
-        $mail->Password   = EMAIL_KEY;
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
+    $subject = 'Your Verification Code';
+    $body = "
+        <div style='font-family: sans-serif;'>
+            <p>Your verification code is: <strong>$otp</strong></p>
+            <p>This code will expire in 10 minutes.</p>
+        </div>
+    ";
 
-        // Sender and recipient
-        $mail->setFrom(EMAIL_HOST_USER, 'DevHub Team');
-        $mail->addAddress($email);
+    $data = [
+        'to' => $email,
+        'subject' => $subject,
+        'body' => $body
+    ];
 
-        // Email content
-        $mail->isHTML(true);
-        $mail->Subject = 'Your Verification Code';
-        $mail->Body    = "<p>Your verification code is: <strong>$otp</strong></p><p>This code will expire in 10 minutes.</p>";
-        $mail->AltBody = "Your verification code is: $otp\n\nThis code will expire in 10 minutes.";
+    $headers = [
+        'Content-Type: application/json'
+    ];
 
-        $mail->send();
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_POST, true);
+
+    $response = curl_exec($ch);
+    $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_status === 200) {
         return true;
-    } catch (Exception $e) {
-        error_log("Mailer Error: " . $mail->ErrorInfo);
+    } else {
+        error_log("❌ Failed to send OTP to $email. Response: $response");
         return false;
     }
 }
+
 
 // Handle AJAX OTP verification
 if (isset($_POST['action']) && $_POST['action'] == 'verify_otp') {
@@ -96,12 +100,23 @@ if (isset($_POST['action']) && $_POST['action'] == 'send_otp') {
 
     // Send OTP via PHPMailer
     if (sendOTP($email, $otp)) {
-        echo json_encode(['status' => 'success', 'message' => 'OTP sent successfully!']);
-        exit();
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP. Please try again.']);
-        exit();
-    }
+    $_SESSION['otp_email'] = $email;
+    $_SESSION['otp_code'] = $otp;
+    $_SESSION['otp_expires'] = time() + 600;
+
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'OTP sent successfully.'
+    ]);
+    exit();
+} else {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Failed to send OTP. Please try again.'
+    ]);
+    exit();
+}
+
 }
 
 // Handle final form submission
@@ -149,6 +164,7 @@ if (function_exists('isLoggedIn') && isLoggedIn()) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -157,6 +173,7 @@ if (function_exists('isLoggedIn') && isLoggedIn()) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
+
 <body class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
     <div class="flex min-h-screen">
         <!-- Left side - Image/Illustration -->
@@ -203,7 +220,7 @@ if (function_exists('isLoggedIn') && isLoggedIn()) {
                             <p class="text-red-600 text-sm"><?php echo htmlspecialchars($error); ?></p>
                         </div>
                     <?php endif; ?>
-                    
+
                     <?php if ($success): ?>
                         <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                             <p class="text-green-600 text-sm"><?php echo htmlspecialchars($success); ?></p>
@@ -307,73 +324,74 @@ if (function_exists('isLoggedIn') && isLoggedIn()) {
     </div>
 
     <script>
-    $(document).ready(function() {
-        // Handle Verify Email button click
-        $('#verifyEmailBtn').click(function() {
-            const email = $('#email').val();
-            
-            if (!email) {
-                $('#emailVerifyStatus').html('<span class="text-red-600">Please enter your email first</span>');
-                return;
-            }
-            
-            $('#emailVerifyStatus').html('<span class="text-purple-600">Sending OTP...</span>');
-            
-            $.ajax({
-                url: '',
-                type: 'POST',
-                data: {
-                    action: 'send_otp',
-                    email: email
-                },
-                success: function(response) {
-                    const res = JSON.parse(response);
-                    if (res.status === 'success') {
-                        $('#emailVerifyStatus').html('<span class="text-green-600">' + res.message + '</span>');
-                        $('#otpField').removeClass('hidden');
-                        $('#verifyEmailBtn').prop('disabled', true).addClass('bg-gray-400').removeClass('bg-purple-600 hover:bg-purple-700');
-                    } else {
-                        $('#emailVerifyStatus').html('<span class="text-red-600">' + res.message + '</span>');
-                    }
-                },
-                error: function() {
-                    $('#emailVerifyStatus').html('<span class="text-red-600">Error sending OTP. Please try again.</span>');
+        $(document).ready(function() {
+            // Handle Verify Email button click
+            $('#verifyEmailBtn').click(function() {
+                const email = $('#email').val();
+
+                if (!email) {
+                    $('#emailVerifyStatus').html('<span class="text-red-600">Please enter your email first</span>');
+                    return;
                 }
-            });
-        });
-        
-        // Handle OTP input (real-time verification)
-        $('#otp').on('input', function() {
-            const otp = $(this).val();
-            
-            if (otp.length === 6) {
-                $('#otpVerifyStatus').html('<span class="text-purple-600">Verifying...</span>');
-                
+
+                $('#emailVerifyStatus').html('<span class="text-purple-600">Sending OTP...</span>');
+
                 $.ajax({
                     url: '',
                     type: 'POST',
                     data: {
-                        action: 'verify_otp',
-                        otp: otp
+                        action: 'send_otp',
+                        email: email
                     },
                     success: function(response) {
                         const res = JSON.parse(response);
                         if (res.status === 'success') {
-                            $('#otpVerifyStatus').html('<span class="text-green-600">' + res.message + '</span>');
+                            $('#emailVerifyStatus').html('<span class="text-green-600">' + res.message + '</span>');
+                            $('#otpField').removeClass('hidden');
+                            $('#verifyEmailBtn').prop('disabled', true).addClass('bg-gray-400').removeClass('bg-purple-600 hover:bg-purple-700');
                         } else {
-                            $('#otpVerifyStatus').html('<span class="text-red-600">' + res.message + '</span>');
-                            $('#otp').val('').attr('placeholder', 'Try again');
+                            $('#emailVerifyStatus').html('<span class="text-red-600">' + res.message + '</span>');
                         }
                     },
                     error: function() {
-                        $('#otpVerifyStatus').html('<span class="text-red-600">Verification failed. Please try again.</span>');
+                        $('#emailVerifyStatus').html('<span class="text-red-600">Error sending OTP. Please try again.</span>');
                     }
                 });
-            } else if (otp.length > 6) {
-                $(this).val(otp.substring(0, 6));
-            }
+            });
+
+            // Handle OTP input (real-time verification)
+            $('#otp').on('input', function() {
+                const otp = $(this).val();
+
+                if (otp.length === 6) {
+                    $('#otpVerifyStatus').html('<span class="text-purple-600">Verifying...</span>');
+
+                    $.ajax({
+                        url: '',
+                        type: 'POST',
+                        data: {
+                            action: 'verify_otp',
+                            otp: otp
+                        },
+                        success: function(response) {
+                            const res = JSON.parse(response);
+                            if (res.status === 'success') {
+                                $('#otpVerifyStatus').html('<span class="text-green-600">' + res.message + '</span>');
+                            } else {
+                                $('#otpVerifyStatus').html('<span class="text-red-600">' + res.message + '</span>');
+                                $('#otp').val('').attr('placeholder', 'Try again');
+                            }
+                        },
+                        error: function() {
+                            $('#otpVerifyStatus').html('<span class="text-red-600">Verification failed. Please try again.</span>');
+                        }
+                    });
+                } else if (otp.length > 6) {
+                    $(this).val(otp.substring(0, 6));
+                }
+            });
         });
-    });
     </script>
 </body>
+
 </html>
