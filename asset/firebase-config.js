@@ -12,14 +12,111 @@ const db = (typeof firebase !== 'undefined' && firebase.apps.length) ? firebase.
 const auth = (typeof firebase !== 'undefined' && firebase.apps.length) ? firebase.auth() : null;
 
 /**
+ * Sign in using Google Auth Popup and bridge to PHP session
+ * @param {string} csrfToken
+ */
+async function signInWithGoogle(csrfToken) {
+  if (!auth) {
+    throw new Error("Firebase Auth is not initialized. Please verify FIREBASE_* settings in .env");
+  }
+
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.addScope('profile');
+  provider.addScope('email');
+
+  const result = await auth.signInWithPopup(provider);
+  const user = result.user;
+  const idToken = await user.getIdToken();
+
+  const response = await fetch('/api/firebase-auth.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      uid: user.uid,
+      email: user.email,
+      name: user.displayName || '',
+      photoURL: user.photoURL || '',
+      provider: 'google.com',
+      idToken: idToken,
+      csrf_token: csrfToken
+    })
+  });
+
+  return await response.json();
+}
+
+/**
+ * Sign in using Firebase Email & Password
+ * @param {string} email
+ * @param {string} password
+ * @param {string} csrfToken
+ */
+async function signInWithFirebaseEmail(email, password, csrfToken) {
+  if (!auth) throw new Error("Firebase Auth is not initialized");
+
+  const result = await auth.signInWithEmailAndPassword(email, password);
+  const user = result.user;
+  const idToken = await user.getIdToken();
+
+  const response = await fetch('/api/firebase-auth.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      uid: user.uid,
+      email: user.email,
+      name: user.displayName || email.split('@')[0],
+      provider: 'password',
+      idToken: idToken,
+      csrf_token: csrfToken
+    })
+  });
+
+  return await response.json();
+}
+
+/**
+ * Sign up using Firebase Email & Password
+ * @param {string} email
+ * @param {string} password
+ * @param {string} fullName
+ * @param {string} csrfToken
+ */
+async function signUpWithFirebaseEmail(email, password, fullName, csrfToken) {
+  if (!auth) throw new Error("Firebase Auth is not initialized");
+
+  const result = await auth.createUserWithEmailAndPassword(email, password);
+  const user = result.user;
+
+  if (fullName && user.updateProfile) {
+    await user.updateProfile({ displayName: fullName });
+  }
+
+  const idToken = await user.getIdToken();
+
+  const response = await fetch('/api/firebase-auth.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      uid: user.uid,
+      email: user.email,
+      name: fullName || email.split('@')[0],
+      provider: 'password',
+      idToken: idToken,
+      csrf_token: csrfToken
+    })
+  });
+
+  return await response.json();
+}
+
+/**
  * Save data to a Firestore collection
- * @param {string} collectionName - Name of the collection (e.g. 'users', 'subscribers', 'bookmarks')
- * @param {object} data - Object containing the fields to save
- * @param {string} [docId] - Optional custom document ID
  */
 async function saveToFirestore(collectionName, data, docId = null) {
   if (!db) {
-    console.error("Firebase Firestore is not initialized. Check your .env configuration.");
+    console.error("Firebase Firestore is not initialized.");
     return { success: false, error: "Firestore not initialized" };
   }
 
@@ -44,7 +141,6 @@ async function saveToFirestore(collectionName, data, docId = null) {
 
 /**
  * Fetch documents from a Firestore collection
- * @param {string} collectionName
  */
 async function getFromFirestore(collectionName) {
   if (!db) return [];
@@ -59,8 +155,6 @@ async function getFromFirestore(collectionName) {
 
 /**
  * Example: Bookmark a comic in Firestore
- * @param {object} comic - Comic data { num, title, img, alt }
- * @param {string} [userEmail] - Optional user identifier
  */
 async function bookmarkComic(comic, userEmail = 'guest') {
   return await saveToFirestore('bookmarked_comics', {
@@ -74,7 +168,6 @@ async function bookmarkComic(comic, userEmail = 'guest') {
 
 /**
  * Example: Save newsletter subscriber directly to Firestore
- * @param {string} email
  */
 async function saveNewsletterSubscriber(email) {
   return await saveToFirestore('subscribers', {
