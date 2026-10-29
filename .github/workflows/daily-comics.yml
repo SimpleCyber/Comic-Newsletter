@@ -1,0 +1,50 @@
+name: Daily Comic Newsletter Automation
+
+on:
+  # Runs once every 24 hours at 03:00 UTC (08:30 AM IST)
+  schedule:
+    - cron: '0 3 * * *'
+  
+  # Allows manual triggering from the GitHub Actions UI anytime
+  workflow_dispatch:
+
+jobs:
+  send-daily-comics:
+    name: Trigger Daily Comics Cron & Send Emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Trigger Comic Newsletter Endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # Fallback to default domain or secret if provided
+          TARGET_URL="${APP_URL:-https://comic-newsletter.vercel.app}"
+          
+          # Remove trailing slash if present
+          TARGET_URL="${TARGET_URL%/}"
+          
+          echo "🚀 Triggering Daily Comic Automation at: ${TARGET_URL}/api/cron.php"
+          
+          # Execute the curl request to the secure cron endpoint
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${TARGET_URL}/api/cron.php" \
+            -H "X-CRON-SECRET: ${CRON_SECRET}" \
+            -d "token=${CRON_SECRET}" \
+            --connect-timeout 30 \
+            --max-time 180)
+          
+          HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+          
+          echo "📡 HTTP Response Status: $HTTP_STATUS"
+          echo "📄 Response Body:"
+          echo "$HTTP_BODY"
+          
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Daily comics automation completed successfully!"
+          else
+            echo "❌ Daily comics automation failed with status $HTTP_STATUS"
+            exit 1
+          fi
