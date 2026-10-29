@@ -75,6 +75,13 @@ if (!in_array($page, $validPages)) {
         </div>
     </div>
 
+    <!-- Firebase App & Firestore SDKs (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="./api/firebase-config.php"></script>
+    <script src="./asset/firebase-config.js"></script>
+
     <script src="./asset/index.js"></script>
 </body>
 </html>

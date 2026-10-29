@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+verifyCronSecret();
 date_default_timezone_set('Asia/Kolkata');
 
 $stmt = $pdo->query("SELECT * FROM comic_subscribers WHERE is_verified = 1 AND is_subscribed = 1");

@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+verifyCronSecret();
 require_once 'send_email_task.php'; // defined below
 
 date_default_timezone_set('Asia/Kolkata');

@@ -1,7 +1,7 @@
 <?php
 
 function sendComicEmail($email, $comic) {
-    $url = 'https://python-mailsend.onrender.com/send-email';
+    $url = env('MAIL_SERVICE_URL', 'https://python-mailsend.onrender.com/send-email');
 
     $subject = "📰 Your XKCD Comic: {$comic['safe_title']}";
     $body = "

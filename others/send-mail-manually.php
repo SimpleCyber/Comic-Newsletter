@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+verifyCronSecret();
 date_default_timezone_set('UTC');
 
 // Step 1: Get all verified + subscribed users
@@ -14,7 +15,7 @@ if (!$subscribers) {
 
 // ✅ Function moved outside loop
 function sendComicEmail($email, $comic) {
-    $url = 'https://python-mailsend.onrender.com/send-email';
+    $url = env('MAIL_SERVICE_URL', 'https://python-mailsend.onrender.com/send-email');
 
     $subject = "📰 Your XKCD Comic of the Day: {$comic['safe_title']}";
     $comicHTML = "

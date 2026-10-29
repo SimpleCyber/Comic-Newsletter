@@ -1,0 +1,17 @@
+# Disable Directory Browsing
+Options -Indexes
+
+# Block sensitive and environment files from HTTP access
+<FilesMatch "^\.(env|git|htaccess|htpasswd)|(\.(sql|log|ini|sh|bak))$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+

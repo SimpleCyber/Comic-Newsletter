@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+requireAdmin();
 date_default_timezone_set('Asia/Kolkata');
 
 $section = $_GET['section'] ?? 'postmails';
@@ -30,6 +31,9 @@ if (isset($_POST['logout'])) {
 
 // Retry / Pause / Delete / Execute / Resume
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verifyCsrfToken()) {
+        die('Invalid CSRF security token.');
+    }
     if (isset($_POST['retry'])) {
         $id = $_POST['retry'];
         $stmt = $pdo->prepare("SELECT attempts, max_attempts FROM email_queue WHERE job_id = ?");
@@ -120,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Self-contained Logout Button Component -->
                         <div class="fixed bottom-0 left-2 p-4">
                             <form method="post" class="w-48">
+                                <?php echo getCsrfField(); ?>
                             <button
                                 type="submit"
                                 name="logout"
@@ -283,6 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <div class="space-y-2">
                                             <?php if (in_array($job['status'], ['failed', 'delayed']) && $job['attempts'] < $job['max_attempts']): ?>
                                                 <form method="POST">
+                                                    <?php echo getCsrfField(); ?>
                                                     <input type="hidden" name="retry" value="<?= $job['job_id'] ?>">
                                                     <button class="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                                                         <i class="fas fa-redo mr-2"></i>Retry
@@ -292,6 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                             <?php if ($job['status'] === 'paused'): ?>
                                                 <form method="POST">
+                                                    <?php echo getCsrfField(); ?>
                                                     <input type="hidden" name="resume" value="<?= $job['job_id'] ?>">
                                                     <button class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                                                         <i class="fas fa-play mr-2"></i>Resume
@@ -299,12 +306,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 </form>
                                             <?php elseif ($job['status'] !== 'completed'): ?>
                                                 <form method="POST">
+                                                    <?php echo getCsrfField(); ?>
                                                     <input type="hidden" name="pause" value="<?= $job['job_id'] ?>">
                                                     <button class="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors mb-2">
                                                         <i class="fas fa-pause mr-2"></i>Pause
                                                     </button>
                                                 </form>
                                                 <form method="POST">
+                                                    <?php echo getCsrfField(); ?>
                                                     <input type="hidden" name="execute" value="<?= $job['job_id'] ?>">
                                                     <button class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                                                         <i class="fas fa-bolt mr-2"></i>Execute
@@ -313,6 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             <?php endif; ?>
 
                                             <form method="POST" onsubmit="return confirm('Delete this job?')">
+                                                <?php echo getCsrfField(); ?>
                                                 <input type="hidden" name="delete" value="<?= $job['job_id'] ?>">
                                                 <button class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                                                     <i class="fas fa-trash mr-2"></i>Delete
@@ -383,8 +393,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-500">
-                                            <div><?= $user['created_at'] ?></div>
-                                            <div class="text-xs"><?= $user['updated_at'] ?></div>
+                                            <div><?= htmlspecialchars((string)$user['created_at']) ?></div>
+                                            <div class="text-xs"><?= htmlspecialchars((string)$user['updated_at']) ?></div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -428,8 +438,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-500">
-                                            <div>Created: <?= $user['created_at'] ?></div>
-                                            <div class="text-xs">Updated: <?= $user['updated_at'] ?></div>
+                                            <div>Created: <?= htmlspecialchars((string)$user['created_at']) ?></div>
+                                            <div class="text-xs">Updated: <?= htmlspecialchars((string)$user['updated_at']) ?></div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
