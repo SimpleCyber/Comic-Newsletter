@@ -37,3 +37,4 @@ if (strpos($path, 'bulldashboard/') === 0) {
 
 // Default fallback to index.php
 require_once __DIR__ . '/../index.php';
+
