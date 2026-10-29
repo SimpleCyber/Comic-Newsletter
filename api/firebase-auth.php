@@ -34,10 +34,24 @@ $email = filter_var(trim($input['email'] ?? ''), FILTER_VALIDATE_EMAIL);
 $name = cleanInput($input['name'] ?? '');
 $uid = cleanInput($input['uid'] ?? '');
 $provider = cleanInput($input['provider'] ?? 'google.com');
+$fromAdmin = !empty($input['from_admin']);
 
 if (!$email || empty($uid)) {
     http_response_code(400);
     echo json_encode(['status' => 'error', 'message' => 'Missing valid email or UID']);
+    exit();
+}
+
+// Check if user is an admin
+$isAdmin = isAdminEmail($email);
+
+// If the user is trying to access via admin portal but is not an admin, block them
+if ($fromAdmin && !$isAdmin) {
+    http_response_code(403);
+    echo json_encode([
+        'status' => 'error',
+        'message' => "Access denied: {$email} does not have administrator privileges."
+    ]);
     exit();
 }
 
@@ -72,7 +86,8 @@ firestore_save_document('users', [
     'email' => $email,
     'full_name' => $finalName,
     'last_login' => date('Y-m-d H:i:s'),
-    'auth_provider' => $provider
+    'auth_provider' => $provider,
+    'is_admin' => $isAdmin
 ], $uid);
 
 // 3. Establish authenticated PHP session
@@ -82,9 +97,18 @@ $_SESSION['firebase_uid'] = $uid;
 $_SESSION['full_name'] = $finalName;
 $_SESSION['email'] = $email;
 
+if ($isAdmin) {
+    $_SESSION['admin_authenticated'] = true;
+    $_SESSION['is_admin'] = true;
+}
+
+// Determine redirect destination
+$redirectUrl = ($fromAdmin || $isAdmin) ? '/bulldashboard/bull-dashboard.php' : '/index.php';
+
 echo json_encode([
     'status' => 'success',
     'message' => 'Authenticated successfully',
-    'redirect' => '/index.php'
+    'is_admin' => $isAdmin,
+    'redirect' => $redirectUrl
 ]);
 exit();

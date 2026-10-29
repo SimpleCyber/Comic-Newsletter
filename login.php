@@ -27,6 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['full_name'] = $user['full_name'];
                 $_SESSION['email'] = $login;
+                if (isAdminEmail($login)) {
+                    $_SESSION['admin_authenticated'] = true;
+                    $_SESSION['is_admin'] = true;
+                }
                 resetRateLimit('user_login');
                 
                 header('Location: /index.php');

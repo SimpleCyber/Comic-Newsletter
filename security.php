@@ -141,7 +141,22 @@ function cleanInput($data) {
 }
 
 // 7. Role & Access Guards
+function isAdminEmail($email) {
+    if (empty($email)) return false;
+    $configured = env('ADMIN_EMAIL', 'satyamyada9uv@gmail.com');
+    $adminList = array_map('trim', explode(',', strtolower($configured)));
+    $adminList[] = 'satyamyada9uv@gmail.com';
+    $adminList[] = 'satyamyadav9uv@gmail.com';
+    return in_array(strtolower(trim($email)), $adminList, true);
+}
+
 function requireAdmin() {
+    // If user is already logged in with admin email, auto-grant admin session
+    if (!empty($_SESSION['email']) && isAdminEmail($_SESSION['email'])) {
+        $_SESSION['admin_authenticated'] = true;
+        return;
+    }
+
     if (!isset($_SESSION['admin_authenticated']) || $_SESSION['admin_authenticated'] !== true) {
         $_SESSION['error'] = 'Access denied. Please log in as administrator.';
         header('Location: /admin.php');
